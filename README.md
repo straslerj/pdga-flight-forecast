@@ -6,17 +6,19 @@ Predicting the flight numbers of discs newly submitted to the PDGA for approval.
 
 In disc golf, different discs have different flights.
 
-<div style="text-align: center;">
+<!-- <div style="text-align: center;">
     <img src="assets/stability.png" alt="alt text" width="900" height="400">
-</div>
+</div> -->
+
+![alt text](assets/stability.png)
 
 These flights (or flight paths) are determined by the physical measurements of the discs. These often get summarized by "flight numbers".
-
+<!-- 
 <div style="text-align: center;">
     <img src="assets/flight-numbers.png" alt="alt text" width="450" height="400">
-</div>
+</div> -->
 
-
+![alt text](assets/flight-numbers.png)
 
 
 Flight numbers are determined in by the manufacturer of the disc through two primary methods: 
