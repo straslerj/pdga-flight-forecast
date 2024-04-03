@@ -1,2 +1,29 @@
-# pga-flight-forecast
+# PDGA Flight Forecast
+
 Predicting the flight numbers of discs newly submitted to the PDGA for approval.
+
+## Background
+
+In disc golf, different discs have different flights.
+
+<div style="text-align: center;">
+    <img src="assets/stability.png" alt="alt text" width="900" height="400">
+</div>
+
+These flights (or flight paths) are determined by the physical measurements of the discs. These often get summarized by "flight numbers".
+
+<div style="text-align: center;">
+    <img src="assets/flight-numbers.png" alt="alt text" width="450" height="400">
+</div>
+
+
+
+
+Flight numbers are determined in by the manufacturer of the disc through two primary methods: 
+
+1. How do people testing the disc feel that it flies compared to other discs they have thrown.
+2. What the physical measurements of the disc suggests.
+
+When a manufacturer makes a new disc they first must submit it to the PDGA for approval, as there are certain constraints a disc must fall within. The PDGA posts the submitted discs [on their website](https://www.pdga.com/technical-standards/equipment-certification/discs). However, only the disc dimensions are posted, not its flight numbers, leaving many disc golfers anxiously speculating at what the newest discs might fly like.
+
+The goal of this project is to scrape the PDGA website and use a machine leaning model ([developed here](https://github.com/straslerj/disc-golf-flight-numbers)) to predict the flight of the newly submitted discs.
