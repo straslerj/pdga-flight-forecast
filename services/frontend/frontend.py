@@ -42,7 +42,16 @@ def connect_to_mongodb() -> pymongo.MongoClient:
     return db
 
 
-def prepare_for_table(input_dict):
+def prepare_for_table(input_dict: dict) -> dict:
+    """Prepares columns to be sortable items when presented in the table by removing units (gr, %, etc.),
+    converting -0.0 into 0, and making the date string a datetime object.
+
+    Args:
+        input_dict (dict): "raw" data from MongoDB collection before processing
+
+    Returns:
+        dict: data in the same structure as it is passed in as with the updated data types
+    """
     for key, value in input_dict.items():
         if key in [
             "max_weight",
@@ -82,4 +91,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8003)
+    app.run(port=8003)
