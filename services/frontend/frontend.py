@@ -1,10 +1,6 @@
 import configparser
 from datetime import datetime
-import numpy as np
-import pandas as pd
 import pymongo
-import os
-import re
 
 from flask import Flask, render_template
 
