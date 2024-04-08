@@ -159,18 +159,14 @@ def scrape_and_store():
                             .text.strip()
                         )
 
-                        existing_doc = db[COLLECTION].find_one(
-                            {
-                                "manufacturer": manufacturer,
-                                "name": capitalize_words_after_last_slash(url),
-                            }
-                        )
+                        existing_doc = db[COLLECTION].find_one({"url": url})
 
                         if (
                             existing_doc is None
                         ):  # Ensures there is no duplicates being added
                             db[COLLECTION].insert_one(
                                 {
+                                    "url": url,
                                     "manufacturer": manufacturer,
                                     "name": capitalize_words_after_last_slash(url),
                                     "approved_date": approved_date,
