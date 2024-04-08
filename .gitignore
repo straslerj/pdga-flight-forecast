@@ -163,3 +163,4 @@ cython_debug/
 pdga/
 config.ini
 tech_debt.md
+requirements.txt
