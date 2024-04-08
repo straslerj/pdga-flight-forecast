@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discs Data</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="text-center">Newly Approved PDGA Discs</h1>
+        <p class="text-center">This website uses machine learning to predict the flight ratings of discs that have been approved by the PDGA but have yet to be announced (and thus formally assigned flight numbers) by the manufacturer.</p>
+        <div class="table-responsive">
+            <table id="discsTable" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Manufacturer</th>
+                        <th>Name</th>
+                        <th>Approved Date</th>
+                        <th>Speed</th>
+                        <th>Glide</th>
+                        <th>Turn</th>
+                        <th>Fade</th>
+                        <th>Max Weight (gr)</th>
+                        <th>Diameter (cm)</th>
+                        <th>Height (cm)</th>
+                        <th>Rim Depth (cm)</th>
+                        <th>Rim Thickness (cm)</th>
+                        <th>Inside Rim Diameter (cm)</th>
+                        <th>Rim Depth Diameter Ratio (%)</th>
+                        <th>Rim Config</th>
+                        <th>Flexibility (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for disc in discs %}
+                    <tr>
+                        <td>{{ disc.manufacturer }}</td>
+                        <td><a href="{{ disc.url }}">{{ disc.name }}</a></td>
+                        <td>{{ disc.approved_date }}</td>
+                        <td>{{ disc.SPEED }}</td>
+                        <td>{{ disc.GLIDE }}</td>
+                        <td>{{ disc.TURN }}</td>
+                        <td>{{ disc.FADE }}</td>
+                        <td>{{ disc.max_weight }}</td>
+                        <td>{{ disc.diameter }}</td>
+                        <td>{{ disc.height }}</td>
+                        <td>{{ disc.rim_depth }}</td>
+                        <td>{{ disc.rim_thickness }}</td>
+                        <td>{{ disc.inside_rim_diameter }}</td>
+                        <td>{{ disc.rim_depth_diameter_ratio }}</td>
+                        <td>{{ disc.rim_config }}</td>
+                        <td>{{ disc.flexibility }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#discsTable').DataTable({
+                "order": [[2, "desc"]] // 2 is the index of the "Approved Date" column, "desc" indicates descending order
+            });
+        });
+    </script>
+
+</body>
+</html>
