@@ -29,9 +29,9 @@ jobs:
     - name: Build and push Docker images
       run: |
         cd services/prediction
-        docker build -t strasler/pdga-prediction:latest .
+        docker build -t straslerj/pdga-prediction:latest .
         docker push straslerj/pdga-prediction:latest
         
         cd ../scraper
-        docker build -t strasler/pdga-scraper:latest .
+        docker build -t straslerj/pdga-scraper:latest .
         docker push straslerj/pdga-scraper:latest
