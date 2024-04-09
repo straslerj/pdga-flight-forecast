@@ -17,7 +17,7 @@ jobs:
       run: |
         cd services/prediction
         echo "${{ secrets.CONFIG }}" > config.ini
-        cd ../prediction
+        cd ../scraper
         echo "${{ secrets.CONFIG }}" > config.ini
       
     - name: Login to Docker Hub
