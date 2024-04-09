@@ -182,7 +182,7 @@ def upload_predictions_to_mongodb(predictions: dict, collection_name: str) -> No
     collection.insert_many(predictions)
 
 
-@app.route("/predict", methods=["GET"])
+@app.route("/predict", methods=["POST"])
 def predict():
     data = fetch_data()
     if len(data) == 0:
