@@ -2,6 +2,8 @@
 
 Predicting the flight numbers of discs newly submitted to the PDGA for approval.
 
+[![Docker Build](https://github.com/straslerj/pdga-flight-forecast/actions/workflows/build-docker-containers.yml/badge.svg)](https://github.com/straslerj/pdga-flight-forecast/actions/workflows/build-docker-containers.yml)
+
 ## Background
 
 In disc golf, different discs have different flights.
