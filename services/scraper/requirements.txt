@@ -23,7 +23,6 @@ pytz==2024.1
 requests==2.31.0
 s3transfer==0.10.1
 six==1.16.0
-ssl==1.16
 soupsieve==2.5
 tzdata==2024.1
 # urllib3==2.2.1
