@@ -1,6 +1,7 @@
 import configparser
 import pymongo
 import requests
+import ssl
 
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify
@@ -46,7 +47,7 @@ def connect_to_mongodb() -> pymongo.MongoClient:
         MongoClient: Instance of MongoDB
     """
 
-    client = pymongo.MongoClient(URI)
+    client = pymongo.MongoClient(URI, ssl_cert_reqs=ssl.CERT_NONE)
 
     db = client[DB_NAME]
     return db
