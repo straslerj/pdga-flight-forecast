@@ -71,7 +71,6 @@ def prepare_for_table(input_dict: dict) -> dict:
             except ValueError:
                 pass
         if key in "approved_date":
-            print(value)
             date_object = datetime.strptime(value, "%b %d, %Y").date()
             input_dict[key] = date_object
     return input_dict
