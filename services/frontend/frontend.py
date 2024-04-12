@@ -14,13 +14,7 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 URI = config["mongodb"]["uri"]
 DB_NAME = config["mongodb"]["db_name"]
-SCRAPER_COLLECTION = config["mongodb"]["scraper_collection"]
 PREDICTION_COLLECTION = config["mongodb"]["prediction_collection"]
-ACCESS_KEY = config["tebi"]["access_key"]
-SECRET_KEY = config["tebi"]["secret_key"]
-ENDPOINT_URL = config["tebi"]["endpoint_url"]
-BUCKET_NAME = config["tebi"]["bucket_name"]
-LOCAL_MODEL_NAME = "model.pkl"
 
 app = Flask(__name__)
 
