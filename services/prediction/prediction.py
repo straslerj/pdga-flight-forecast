@@ -6,6 +6,7 @@ import pandas as pd
 import pymongo
 import os
 import re
+import requests
 
 from flask import Flask, jsonify
 
@@ -202,6 +203,15 @@ def predict():
     if os.path.exists(LOCAL_MODEL_NAME):
         os.remove(LOCAL_MODEL_NAME)
         print(f"File '{LOCAL_MODEL_NAME}' removed successfully.")
+
+    url = "https://pdga-twitter.bluepond-f98a2bc1.northcentralus.azurecontainerapps.io/create_tweet"
+    try:
+        response = requests.post(url)
+        print(f"Twitter service ran: {response}")
+    except Exception as e:
+        print(
+            f"The Twitter service was triggered but there was an error in running it: {e}"
+        )
 
     return jsonify(
         {
