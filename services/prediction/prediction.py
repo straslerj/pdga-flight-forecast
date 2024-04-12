@@ -166,6 +166,8 @@ def make_predictions(model, data: pd.DataFrame) -> pd.DataFrame:
         predictions, columns=["SPEED", "GLIDE", "TURN", "FADE"]
     )
 
+    df["tweeted"] = False
+
     df = pd.concat([df, df_predictions], axis=1)
     return df
 
