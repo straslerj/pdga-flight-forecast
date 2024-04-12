@@ -43,14 +43,13 @@ def create_tweet():
 
             apiv2.create_tweet(text=tweet_text, user_auth=True)
             new_tweets += 1
+        return (
+            jsonify({"message": f"{new_tweets} tweets created successfully"}),
+            200,
+        )
 
     except Exception as e:
-        print(f"Error trying to tweet: {e}")
-
-    return (
-        jsonify({"message": f"{new_tweets} tweets created successfully"}),
-        200,
-    )
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
