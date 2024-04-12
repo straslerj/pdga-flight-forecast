@@ -3,6 +3,7 @@ import pymongo
 import requests
 
 from bs4 import BeautifulSoup
+from datetime import datetime
 from flask import Flask, jsonify
 from urllib.parse import urlparse
 
@@ -19,6 +20,8 @@ DB_NAME = config["mongodb"]["db_name"]
 COLLECTION = config["mongodb"]["scraper_collection"]
 
 app = Flask(__name__)
+
+last_scraped = None
 
 
 def capitalize_words_after_last_slash(url: str) -> str:
@@ -52,6 +55,22 @@ def connect_to_mongodb() -> pymongo.MongoClient:
     return db
 
 
+@app.route("/last_scraped", methods=["GET"])
+def get_last_scraped():
+    global last_scraped
+
+    if last_scraped:
+        return (
+            jsonify({"last_scraped": last_scraped.strftime("%Y-%m-%d %H:%M:%S")}),
+            200,
+        )
+    else:
+        return (
+            jsonify({"message": "Scrape and store endpoint has not been called yet."}),
+            200,
+        )
+
+
 @app.route("/scrape_and_store", methods=["POST"])
 def scrape_and_store():
     """Scrapes the PDGA website and adds the new discs to the database
@@ -60,6 +79,7 @@ def scrape_and_store():
         JSON: 200 when successful
               500 when error
     """
+    last_scraped = datetime.now()
     try:
         print("Parsing HTML...")
         base_url = "https://www.pdga.com"
