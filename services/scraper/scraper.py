@@ -207,10 +207,23 @@ def scrape_and_store():
                     except Exception as e:
                         print(f"Error occured for url {url}: {e}")
 
+        global preds_run
+        preds_run = False
+        if new_entries > 0:
+            preds_run = True
+            url = "https://pdga-prediction.bluepond-f98a2bc1.northcentralus.azurecontainerapps.io/predict"
+            try:
+                response = requests.post(url)
+                print(f"Prediction service ran: {response}")
+            except Exception as e:
+                print(
+                    f"The prediction service was triggered but there was an error in running it: {e}"
+                )
+
         return (
             jsonify(
                 {
-                    "message": f"Data scraped and stored successfully. {new_entries} discs added to {DB_NAME}/{COLLECTION}."
+                    "message": f"Data scraped and stored successfully. {new_entries} discs added to {DB_NAME}/{COLLECTION}. {'Prediction service triggered.' if preds_run else ''}"
                 }
             ),
             200,
