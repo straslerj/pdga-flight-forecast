@@ -13,11 +13,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Copy requirements
+      run: |
+        cp requirements.txt services/prediction
+        cp requirements.txt services/scraper
+        cp requirements.txt services/twitter
+
+
     - name: Create config
       run: |
         cd services/prediction
         echo "${{ secrets.CONFIG }}" > config.ini
         cd ../scraper
+        echo "${{ secrets.CONFIG }}" > config.ini
+        cd ../twitter
         echo "${{ secrets.CONFIG }}" > config.ini
       
     - name: Login to Docker Hub
@@ -35,3 +44,7 @@ jobs:
         cd ../scraper
         docker build -t straslerj/pdga-scraper:latest .
         docker push straslerj/pdga-scraper:latest
+
+        cd ../twitter
+        docker build -t straslerj/pdga-twitter:latest .
+        docker push straslerj/pdga-twitter:latest
