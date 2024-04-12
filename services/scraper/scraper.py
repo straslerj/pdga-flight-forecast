@@ -79,6 +79,7 @@ def scrape_and_store():
         JSON: 200 when successful
               500 when error
     """
+    global last_scraped
     last_scraped = datetime.now()
     try:
         print("Parsing HTML...")
