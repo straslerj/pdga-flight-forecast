@@ -3,6 +3,10 @@ import tweepy
 from flask import Flask, jsonify
 from pymongo import MongoClient
 
+
+"""
+Twitter service which publishes the newly made predictions to the Twitter feed.
+"""
 config = configparser.ConfigParser()
 config.read("config.ini")
 
