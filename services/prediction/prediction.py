@@ -8,6 +8,7 @@ import os
 import re
 import requests
 
+from datetime import datetime
 from flask import Flask, jsonify, request
 from functools import wraps
 
@@ -154,7 +155,7 @@ def make_predictions(model, data: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame: DataFrame including feature values, other disc information such as url, and the predicted speed, glide, turn, and fade
     """
-    model = load_model()
+    model = load_model()  # Assuming this function loads the model, remove if not needed
     df = pd.DataFrame(data)
     X = df[
         [
@@ -180,7 +181,7 @@ def make_predictions(model, data: pd.DataFrame) -> pd.DataFrame:
 
     predictions = model.predict(X)
 
-    predictions = np.round(predictions)
+    predictions = np.round(predictions).astype(int)
 
     df_predictions = pd.DataFrame(
         predictions, columns=["SPEED", "GLIDE", "TURN", "FADE"]
@@ -204,6 +205,44 @@ def upload_predictions_to_mongodb(predictions: dict, collection_name: str) -> No
     collection.insert_many(predictions)
 
 
+def clean_data(input_dict: dict) -> dict:
+    """Prepares columns to be sortable items when presented in the table by removing units (gr, %, etc.),
+    converting -0.0 into 0, and making the date string a datetime object.
+
+    Args:
+        input_dict (dict): "raw" data from MongoDB collection before processing
+
+    Returns:
+        dict: data in the same structure as it is passed in as with the updated data types
+    """
+    for key, value in input_dict.items():
+        if key in [
+            "max_weight",
+            "diameter",
+            "height",
+            "rim_depth",
+            "rim_thickness",
+            "inside_rim_diameter",
+            "rim_depth_diameter_ratio",
+            "flexibility",
+        ]:
+            try:
+                value = value.rstrip("grkcm%")
+                input_dict[key] = float(value)
+            except ValueError:
+                pass
+        if key in ["TURN"]:
+            try:
+                if value == -0.0 or value == -0:
+                    input_dict[key] = 0.0 - float(value)
+            except ValueError:
+                pass
+        if key in "approved_date":
+            date_object = datetime.strptime(value, "%b %d, %Y").date()
+            input_dict[key] = date_object
+    return input_dict
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
     data = fetch_data()
@@ -215,9 +254,10 @@ def predict():
 
     data = make_predictions(model, data)  # type(make_prediction(x, y)) == DataFrame
 
-    mongo_data = data.to_dict(orient="records")
+    # Applying prepare_for_table to the data
+    prepared_data = [clean_data(item) for item in data.to_dict(orient="records")]
 
-    upload_predictions_to_mongodb(mongo_data, PREDICTION_COLLECTION)
+    upload_predictions_to_mongodb(prepared_data, PREDICTION_COLLECTION)
 
     if os.path.exists(LOCAL_MODEL_NAME):
         os.remove(LOCAL_MODEL_NAME)
@@ -239,7 +279,7 @@ def predict():
 
     return jsonify(
         {
-            "message": f"{len(mongo_data)} predictions uploaded successfully to {PREDICTION_COLLECTION}"
+            "message": f"{len(prepared_data)} predictions uploaded successfully to {PREDICTION_COLLECTION}"
         }
     )
 

@@ -69,7 +69,7 @@ def create_tweet():
 
         new_tweets = 0
         for entry in entries_to_tweet:
-            tweet_text = f"{entry['manufacturer']} {entry['name']} has been approved. Estimated flight numbers:\nSPEED: {entry['SPEED']}\nGLIDE: {entry['GLIDE']}\nTURN : {entry['TURN']}\nFADE : {entry['FADE']}\n\nSee it here: {entry['url']}"
+            tweet_text = f"{entry['manufacturer']} {entry['name']} has been approved. Estimated flight numbers:\nSPEED: {int(entry['SPEED'])}\nGLIDE: {int(entry['GLIDE'])}\nTURN : {int(entry['TURN'])}\nFADE : {int(entry['FADE'])}\n\nSee it here: {entry['url']}"
 
             prediction_collection.update_one(
                 {"_id": entry["_id"]}, {"$set": {"tweeted": True}}
