@@ -234,7 +234,7 @@ def clean_data(input_dict: dict) -> dict:
         if key in ["TURN"]:
             try:
                 if value == -0.0 or value == -0:
-                    input_dict[key] = 0.0 - float(value)
+                    input_dict[key] = 0 - int(value)
             except ValueError:
                 pass
     return input_dict
