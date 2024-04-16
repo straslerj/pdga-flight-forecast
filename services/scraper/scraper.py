@@ -4,7 +4,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from datetime import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from functools import wraps
 from urllib.parse import urlparse
 
@@ -19,6 +19,9 @@ config.read("config.ini")
 URI = config["mongodb"]["uri"]
 DB_NAME = config["mongodb"]["db_name"]
 COLLECTION = config["mongodb"]["scraper_collection"]
+USAGE_COLLECTION = config["mongodb"]["scraper_usage"]
+ADMIN_USERNAME = config["admin"]["username"]
+ADMIN_PASSWORD = config["admin"]["password"]
 
 app = Flask(__name__)
 
@@ -56,6 +59,20 @@ def verify_api_key(func):
     return wrapper
 
 
+def check_auth(username, password):
+    """Check if a username and password are valid to view the admin page."""
+    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
+
+
+def authenticate():
+    """Send a 401 response that enables basic auth."""
+    return (
+        "Unauthorized access. Please provide valid credentials.",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'},
+    )
+
+
 def capitalize_words_after_last_slash(url: str) -> str:
     """Disc name is not included in the parsed HTML. This method extracts it from the URL and formats it nicely.
 
@@ -74,19 +91,36 @@ def capitalize_words_after_last_slash(url: str) -> str:
     return capitalized_words
 
 
+def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+    db[collection].insert_one(
+        {
+            "endpoint": endpoint,
+            "method": method,
+            "time": datetime.now(),
+            "response_code": response_code,
+            "response_message": response_message,
+        }
+    )
+
+
 @app.route("/last_scraped", methods=["GET"])
 @verify_api_key
 def get_last_scraped():
     global last_scraped
-
+    db = connect_to_mongodb()
     if last_scraped:
+        message = last_scraped.strftime("%Y-%m-%d %H:%M:%S")
+        write_usage_log(db, USAGE_COLLECTION, "/last_scraped", "GET", 200, message)
+
         return (
-            jsonify({"last_scraped": last_scraped.strftime("%Y-%m-%d %H:%M:%S")}),
+            jsonify({"last_scraped": message}),
             200,
         )
     else:
+        message = "Scrape and store endpoint has not been called yet."
+        write_usage_log(db, USAGE_COLLECTION, "/last_scraped", "GET", 200, message)
         return (
-            jsonify({"message": "Scrape and store endpoint has not been called yet."}),
+            jsonify({"message": message}),
             200,
         )
 
@@ -103,6 +137,13 @@ def scrape_and_store():
     global last_scraped
     last_scraped = datetime.now()
     try:
+        print("Connecting to MongoDB...")
+        db = connect_to_mongodb()
+        print("Connected to MongoDB")
+    except Exception as e:
+        print(f"Error trying to connect to MongoDB: {e}")
+        return jsonify({"error": str(e)}), 500
+    try:
         print("Parsing HTML...")
         base_url = "https://www.pdga.com"
         url = base_url + "/technical-standards/equipment-certification/discs"
@@ -118,10 +159,6 @@ def scrape_and_store():
 
         urls = [base_url + link.get("href") for link in links]
         print("Parsed HTML")
-
-        print("Connecting to MongoDB...")
-        db = connect_to_mongodb()
-        print("Connected to MongoDB")
 
         new_entries = 0
         for url in urls:
@@ -246,16 +283,54 @@ def scrape_and_store():
                     f"The prediction service was triggered but there was an error in running it: {e}"
                 )
 
+        message = f"Data scraped and stored successfully. {new_entries} discs added to {DB_NAME}/{COLLECTION}. {'Prediction service triggered.' if preds_run else ''}"
+        write_usage_log(db, USAGE_COLLECTION, "/scrape_and_store", "POST", 200, message)
         return (
-            jsonify(
-                {
-                    "message": f"Data scraped and stored successfully. {new_entries} discs added to {DB_NAME}/{COLLECTION}. {'Prediction service triggered.' if preds_run else ''}"
-                }
-            ),
+            jsonify({"message": message}),
             200,
         )
     except Exception as e:
+        write_usage_log(db, USAGE_COLLECTION, "/scrape_and_store", "POST", 500, str(e))
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/admin", methods=["GET"])
+def admin():
+    auth = request.authorization
+
+    # Check if the provided credentials match the admin credentials
+    if not auth or not check_auth(auth.username, auth.password):
+        # If the credentials are invalid, ask for authentication
+        return authenticate()
+
+    db = connect_to_mongodb()
+    collection = db[USAGE_COLLECTION]
+
+    # Get the number of times each endpoint was called
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$endpoint",
+                "count": {"$sum": 1},
+                "last_run": {"$max": "$time"},
+            }
+        },
+    ]
+
+    aggregation_result = list(collection.aggregate(pipeline))
+
+    # Convert the aggregation result to a dictionary with endpoints as keys
+    endpoint_counts = {
+        item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
+        for item in aggregation_result
+    }
+
+    # Get all entries in the database
+    all_entries = list(collection.find({}, {"_id": 0}))
+
+    return render_template(
+        "admin.html", endpoint_counts=endpoint_counts, log=all_entries
+    )
 
 
 if __name__ == "__main__":

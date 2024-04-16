@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scraper Admin Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2>Scraper Admin Dashboard</h2>
+    
+    <!-- Endpoint counts table -->
+    <h3>Endpoint Counts</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Count</th>
+                <th>Last Run</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for endpoint, data in endpoint_counts.items() %}
+            <tr>
+                <td>{{ endpoint }}</td>
+                <td>{{ data.count }}</td>
+                <td>{{ data.last_run }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Log of all calls -->
+    <h3>Log</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Response Code</th>
+                <th>Response Message</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in log %}
+            <tr>
+                <td>{{ entry.endpoint }}</td>
+                <td>{{ entry.method }}</td>
+                <td>{{ entry.response_code }}</td>
+                <td>{{ entry.response_message }}</td>
+                <td>{{ entry.time }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Bootstrap JS and Popper.js -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>
