@@ -237,6 +237,11 @@ def clean_data(input_dict: dict) -> dict:
                     input_dict[key] = 0 - int(value)
             except ValueError:
                 pass
+        if key == "approved_date":
+            try:
+                input_dict[key] = datetime.strptime(value, "%b %d, %Y")
+            except ValueError:
+                pass
     return input_dict
 
 

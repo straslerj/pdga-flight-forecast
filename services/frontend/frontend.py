@@ -49,13 +49,33 @@ def prepare_for_table(input_dict: dict) -> dict:
     return input_dict
 
 
+def format_date(date_time) -> str:
+    """Formats date-time to only display the date portion
+
+    Args:
+        date_time (datetime): The datetime object to be formatted
+
+    Returns:
+        str: Formatted date string
+    """
+    return date_time.strftime("%Y-%m-%d")
+
+
 @app.route("/")
 def index():
     db = connect_to_mongodb()
     discs_cursor = db[PREDICTION_COLLECTION].find()
-    discs = list(discs_cursor)
-    processed_discs = [prepare_for_table(disc) for disc in discs]
-    return render_template("index.html", discs=processed_discs)
+
+    discs = [
+        (
+            {**disc, "approved_date": format_date(disc["approved_date"])}
+            if "approved_date" in disc and isinstance(disc["approved_date"], datetime)
+            else disc
+        )
+        for disc in discs_cursor
+    ]
+
+    return render_template("index.html", discs=discs)
 
 
 if __name__ == "__main__":
