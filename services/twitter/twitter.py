@@ -1,7 +1,8 @@
 import configparser
+import pymongo
 import tweepy
-from flask import Flask, jsonify
-from pymongo import MongoClient
+from flask import Flask, jsonify, request
+from functools import wraps
 
 
 """
@@ -20,10 +21,6 @@ PREDICTION_COLLECTION = config["mongodb"]["prediction_collection"]
 
 app = Flask(__name__)
 
-client = MongoClient(URI)
-db = client[DB_NAME]
-prediction_collection = db[PREDICTION_COLLECTION]
-
 apiv2 = tweepy.Client(
     consumer_key=API_KEY,
     consumer_secret=API_KEY_SECRET,
@@ -32,9 +29,42 @@ apiv2 = tweepy.Client(
 )
 
 
+def connect_to_mongodb() -> pymongo.MongoClient:
+    """Makes connection to MongoDB
+
+    Returns:
+        MongoClient: Instance of MongoDB
+    """
+
+    client = pymongo.MongoClient(URI)
+
+    db = client[DB_NAME]
+    return db
+
+
+def verify_api_key(func):
+    """Used to verify access across APIs"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        provided_api_key = request.headers.get("X-API-KEY")
+        if not provided_api_key:
+            return jsonify({"message": "API key is missing"}), 401
+
+        config_api_key = config["auth"]["api_key"]
+        if provided_api_key != config_api_key:
+            return jsonify({"message": "Invalid API key"}), 401
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 @app.route("/create_tweet", methods=["POST"])
 def create_tweet():
     try:
+        db = connect_to_mongodb()
+        prediction_collection = db[PREDICTION_COLLECTION]
         entries_to_tweet = prediction_collection.find({"tweeted": False})
 
         new_tweets = 0

@@ -8,7 +8,8 @@ import os
 import re
 import requests
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from functools import wraps
 
 
 """
@@ -42,6 +43,24 @@ def connect_to_mongodb() -> pymongo.MongoClient:
 
     db = client[DB_NAME]
     return db
+
+
+def verify_api_key(func):
+    """Used to verify access across APIs"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        provided_api_key = request.headers.get("X-API-KEY")
+        if not provided_api_key:
+            return jsonify({"message": "API key is missing"}), 401
+
+        config_api_key = config["auth"]["api_key"]
+        if provided_api_key != config_api_key:
+            return jsonify({"message": "Invalid API key"}), 401
+
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def download_newest_model_from_s3(bucket_name: str) -> str:
@@ -204,10 +223,15 @@ def predict():
         os.remove(LOCAL_MODEL_NAME)
         print(f"File '{LOCAL_MODEL_NAME}' removed successfully.")
 
-    url = "https://pdga-twitter.bluepond-f98a2bc1.northcentralus.azurecontainerapps.io/create_tweet"
+    url = config["urls"]["twitter"]
+    headers = {"X-API-KEY": config["auth"]["api_key"]}
     try:
-        response = requests.post(url)
+        response = requests.post(url, headers=headers)
         print(f"Twitter service ran: {response}")
+        if response.status_code == 401:
+            print("Unauthorized: Invalid API key")
+        elif response.status_code != 200:
+            print(f"Error: {response.json()}")
     except Exception as e:
         print(
             f"The Twitter service was triggered but there was an error in running it: {e}"

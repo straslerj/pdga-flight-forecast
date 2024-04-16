@@ -4,7 +4,8 @@ import requests
 
 from bs4 import BeautifulSoup
 from datetime import datetime
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from functools import wraps
 from urllib.parse import urlparse
 
 """
@@ -22,6 +23,37 @@ COLLECTION = config["mongodb"]["scraper_collection"]
 app = Flask(__name__)
 
 last_scraped = None
+
+
+def connect_to_mongodb() -> pymongo.MongoClient:
+    """Makes connection to MongoDB
+
+    Returns:
+        MongoClient: Instance of MongoDB
+    """
+
+    client = pymongo.MongoClient(URI)
+
+    db = client[DB_NAME]
+    return db
+
+
+def verify_api_key(func):
+    """Used to verify access across APIs"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        provided_api_key = request.headers.get("X-API-KEY")
+        if not provided_api_key:
+            return jsonify({"message": "API key is missing"}), 401
+
+        config_api_key = config["auth"]["api_key"]
+        if provided_api_key != config_api_key:
+            return jsonify({"message": "Invalid API key"}), 401
+
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def capitalize_words_after_last_slash(url: str) -> str:
@@ -42,20 +74,8 @@ def capitalize_words_after_last_slash(url: str) -> str:
     return capitalized_words
 
 
-def connect_to_mongodb() -> pymongo.MongoClient:
-    """Makes connection to MongoDB
-
-    Returns:
-        MongoClient: Instance of MongoDB
-    """
-
-    client = pymongo.MongoClient(URI)
-
-    db = client[DB_NAME]
-    return db
-
-
 @app.route("/last_scraped", methods=["GET"])
+@verify_api_key
 def get_last_scraped():
     global last_scraped
 
@@ -72,6 +92,7 @@ def get_last_scraped():
 
 
 @app.route("/scrape_and_store", methods=["POST"])
+@verify_api_key
 def scrape_and_store():
     """Scrapes the PDGA website and adds the new discs to the database
 
@@ -211,10 +232,15 @@ def scrape_and_store():
         preds_run = False
         if new_entries > 0:
             preds_run = True
-            url = "https://pdga-prediction.bluepond-f98a2bc1.northcentralus.azurecontainerapps.io/predict"
+            url = config["urls"]["prediction"]
+            headers = {"X-API-KEY": config["auth"]["api_key"]}
             try:
-                response = requests.post(url)
+                response = requests.post(url, headers=headers)
                 print(f"Prediction service ran: {response}")
+                if response.status_code == 401:
+                    print("Unauthorized: Invalid API key")
+                elif response.status_code != 200:
+                    print(f"Error: {response.json()}")
             except Exception as e:
                 print(
                     f"The prediction service was triggered but there was an error in running it: {e}"
