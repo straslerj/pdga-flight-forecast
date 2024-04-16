@@ -6,7 +6,7 @@ Predicting the flight numbers of discs newly submitted to the PDGA for approval.
 
 ## Background
 
-In disc golf, different discs have different flights.
+In disc golf, different discs have different flights:
 
 ![alt text](assets/stability.png)
 
