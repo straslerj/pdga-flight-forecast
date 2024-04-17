@@ -104,6 +104,8 @@ def index():
         for disc in discs_cursor
     ]
 
+    message = f"Number of discs: {len(discs)}"
+    write_usage_log(db, USAGE_COLLECTION, "/", "GET", 200, message)
     return render_template("index.html", discs=discs)
 
 
