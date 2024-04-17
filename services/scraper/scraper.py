@@ -298,15 +298,12 @@ def scrape_and_store():
 def admin():
     auth = request.authorization
 
-    # Check if the provided credentials match the admin credentials
     if not auth or not check_auth(auth.username, auth.password):
-        # If the credentials are invalid, ask for authentication
         return authenticate()
 
     db = connect_to_mongodb()
     collection = db[USAGE_COLLECTION]
 
-    # Get the number of times each endpoint was called
     pipeline = [
         {
             "$group": {
@@ -319,13 +316,11 @@ def admin():
 
     aggregation_result = list(collection.aggregate(pipeline))
 
-    # Convert the aggregation result to a dictionary with endpoints as keys
     endpoint_counts = {
         item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
         for item in aggregation_result
     }
 
-    # Get all entries in the database
     all_entries = list(collection.find({}, {"_id": 0}))
 
     return render_template(

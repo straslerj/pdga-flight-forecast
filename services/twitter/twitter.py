@@ -2,7 +2,7 @@ import configparser
 from datetime import datetime
 import pymongo
 import tweepy
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from functools import wraps
 
 
@@ -118,6 +118,40 @@ def create_tweet():
     except Exception as e:
         write_usage_log(db, USAGE_COLLECTION, "/create_tweet", "POST", 500, str(e))
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/admin", methods=["GET"])
+def admin():
+    auth = request.authorization
+
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+
+    db = connect_to_mongodb()
+    collection = db[USAGE_COLLECTION]
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$endpoint",
+                "count": {"$sum": 1},
+                "last_run": {"$max": "$time"},
+            }
+        },
+    ]
+
+    aggregation_result = list(collection.aggregate(pipeline))
+
+    endpoint_counts = {
+        item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
+        for item in aggregation_result
+    }
+
+    all_entries = list(collection.find({}, {"_id": 0}))
+
+    return render_template(
+        "admin.html", endpoint_counts=endpoint_counts, log=all_entries
+    )
 
 
 if __name__ == "__main__":
