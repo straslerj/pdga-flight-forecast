@@ -1,4 +1,5 @@
 import configparser
+from datetime import datetime
 import pymongo
 import tweepy
 from flask import Flask, jsonify, request
@@ -18,6 +19,9 @@ ACCESS_TOKEN_SECRET = config["twitter"]["access_token_secret"]
 URI = config["mongodb"]["uri"]
 DB_NAME = config["mongodb"]["db_name"]
 PREDICTION_COLLECTION = config["mongodb"]["prediction_collection"]
+USAGE_COLLECTION = config["mongodb"]["twitter_usage"]
+ADMIN_USERNAME = config["admin"]["username"]
+ADMIN_PASSWORD = config["admin"]["password"]
 
 app = Flask(__name__)
 
@@ -60,6 +64,32 @@ def verify_api_key(func):
     return wrapper
 
 
+def check_auth(username, password):
+    """Check if a username and password are valid to view the admin page."""
+    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
+
+
+def authenticate():
+    """Send a 401 response that enables basic auth."""
+    return (
+        "Unauthorized access. Please provide valid credentials.",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'},
+    )
+
+
+def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+    db[collection].insert_one(
+        {
+            "endpoint": endpoint,
+            "method": method,
+            "time": datetime.now(),
+            "response_code": response_code,
+            "response_message": response_message,
+        }
+    )
+
+
 @app.route("/create_tweet", methods=["POST"])
 def create_tweet():
     try:
@@ -77,12 +107,16 @@ def create_tweet():
 
             apiv2.create_tweet(text=tweet_text, user_auth=True)
             new_tweets += 1
+
+        message = f"{new_tweets} tweets created successfully."
+        write_usage_log(db, USAGE_COLLECTION, "/create_tweet", "POST", 200, message)
         return (
-            jsonify({"message": f"{new_tweets} tweets created successfully"}),
+            jsonify({"message": message}),
             200,
         )
 
     except Exception as e:
+        write_usage_log(db, USAGE_COLLECTION, "/create_tweet", "POST", 500, str(e))
         return jsonify({"error": str(e)}), 500
 
 
