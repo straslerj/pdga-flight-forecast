@@ -2,7 +2,7 @@ import configparser
 from datetime import datetime
 import pymongo
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 
 """
@@ -15,6 +15,9 @@ config.read("config.ini")
 URI = config["mongodb"]["uri"]
 DB_NAME = config["mongodb"]["db_name"]
 PREDICTION_COLLECTION = config["mongodb"]["prediction_collection"]
+USAGE_COLLECTION = config["mongodb"]["frontend_usage"]
+ADMIN_USERNAME = config["admin"]["username"]
+ADMIN_PASSWORD = config["admin"]["password"]
 
 app = Flask(__name__)
 
@@ -30,6 +33,32 @@ def connect_to_mongodb() -> pymongo.MongoClient:
 
     db = client[DB_NAME]
     return db
+
+
+def check_auth(username, password):
+    """Check if a username and password are valid to view the admin page."""
+    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
+
+
+def authenticate():
+    """Send a 401 response that enables basic auth."""
+    return (
+        "Unauthorized access. Please provide valid credentials.",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'},
+    )
+
+
+def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+    db[collection].insert_one(
+        {
+            "endpoint": endpoint,
+            "method": method,
+            "time": datetime.now(),
+            "response_code": response_code,
+            "response_message": response_message,
+        }
+    )
 
 
 def prepare_for_table(input_dict: dict) -> dict:
@@ -76,6 +105,40 @@ def index():
     ]
 
     return render_template("index.html", discs=discs)
+
+
+@app.route("/admin", methods=["GET"])
+def admin():
+    auth = request.authorization
+
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+
+    db = connect_to_mongodb()
+    collection = db[USAGE_COLLECTION]
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$endpoint",
+                "count": {"$sum": 1},
+                "last_run": {"$max": "$time"},
+            }
+        },
+    ]
+
+    aggregation_result = list(collection.aggregate(pipeline))
+
+    endpoint_counts = {
+        item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
+        for item in aggregation_result
+    }
+
+    all_entries = list(collection.find({}, {"_id": 0}))
+
+    return render_template(
+        "admin.html", endpoint_counts=endpoint_counts, log=all_entries
+    )
 
 
 if __name__ == "__main__":
