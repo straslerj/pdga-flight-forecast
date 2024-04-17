@@ -321,7 +321,7 @@ def admin():
         for item in aggregation_result
     }
 
-    all_entries = list(collection.find({}, {"_id": 0}))
+    all_entries = list(collection.find({}, {"_id": 0}).sort("time", -1))
 
     return render_template(
         "admin.html", endpoint_counts=endpoint_counts, log=all_entries
