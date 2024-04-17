@@ -9,7 +9,7 @@ import re
 import requests
 
 from datetime import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from functools import wraps
 
 
@@ -28,6 +28,9 @@ ACCESS_KEY = config["tebi"]["access_key"]
 SECRET_KEY = config["tebi"]["secret_key"]
 ENDPOINT_URL = config["tebi"]["endpoint_url"]
 BUCKET_NAME = config["tebi"]["bucket_name"]
+USAGE_COLLECTION = config["mongodb"]["prediction_usage"]
+ADMIN_USERNAME = config["admin"]["username"]
+ADMIN_PASSWORD = config["admin"]["password"]
 LOCAL_MODEL_NAME = "model.pkl"
 
 app = Flask(__name__)
@@ -62,6 +65,32 @@ def verify_api_key(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def check_auth(username, password):
+    """Check if a username and password are valid to view the admin page."""
+    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
+
+
+def authenticate():
+    """Send a 401 response that enables basic auth."""
+    return (
+        "Unauthorized access. Please provide valid credentials.",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'},
+    )
+
+
+def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+    db[collection].insert_one(
+        {
+            "endpoint": endpoint,
+            "method": method,
+            "time": datetime.now(),
+            "response_code": response_code,
+            "response_message": response_message,
+        }
+    )
 
 
 def download_newest_model_from_s3(bucket_name: str) -> str:
@@ -247,6 +276,7 @@ def clean_data(input_dict: dict) -> dict:
 
 @app.route("/predict", methods=["POST"])
 def predict():
+    db = connect_to_mongodb()
     data = fetch_data()
     if len(data) == 0:
         return jsonify({"message": "No new discs to predict for."})
@@ -279,10 +309,47 @@ def predict():
             f"The Twitter service was triggered but there was an error in running it: {e}"
         )
 
-    return jsonify(
+    message = f"{len(prepared_data)} predictions uploaded successfully to {PREDICTION_COLLECTION}"
+    write_usage_log(db, USAGE_COLLECTION, "/predict", "POST", 200, message)
+    return jsonify({"message": message})
+
+
+@app.route("/admin", methods=["GET"])
+def admin():
+    auth = request.authorization
+
+    # Check if the provided credentials match the admin credentials
+    if not auth or not check_auth(auth.username, auth.password):
+        # If the credentials are invalid, ask for authentication
+        return authenticate()
+
+    db = connect_to_mongodb()
+    collection = db[USAGE_COLLECTION]
+
+    # Get the number of times each endpoint was called
+    pipeline = [
         {
-            "message": f"{len(prepared_data)} predictions uploaded successfully to {PREDICTION_COLLECTION}"
-        }
+            "$group": {
+                "_id": "$endpoint",
+                "count": {"$sum": 1},
+                "last_run": {"$max": "$time"},
+            }
+        },
+    ]
+
+    aggregation_result = list(collection.aggregate(pipeline))
+
+    # Convert the aggregation result to a dictionary with endpoints as keys
+    endpoint_counts = {
+        item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
+        for item in aggregation_result
+    }
+
+    # Get all entries in the database
+    all_entries = list(collection.find({}, {"_id": 0}))
+
+    return render_template(
+        "admin.html", endpoint_counts=endpoint_counts, log=all_entries
     )
 
 
