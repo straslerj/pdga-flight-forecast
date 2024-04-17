@@ -73,6 +73,18 @@ def authenticate():
     )
 
 
+def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+    db[collection].insert_one(
+        {
+            "endpoint": endpoint,
+            "method": method,
+            "time": datetime.now(),
+            "response_code": response_code,
+            "response_message": response_message,
+        }
+    )
+
+
 def capitalize_words_after_last_slash(url: str) -> str:
     """Disc name is not included in the parsed HTML. This method extracts it from the URL and formats it nicely.
 
@@ -89,18 +101,6 @@ def capitalize_words_after_last_slash(url: str) -> str:
     words = last_part.split("-")
     capitalized_words = " ".join(word.capitalize() for word in words)
     return capitalized_words
-
-
-def write_usage_log(db, collection, endpoint, method, response_code, response_message):
-    db[collection].insert_one(
-        {
-            "endpoint": endpoint,
-            "method": method,
-            "time": datetime.now(),
-            "response_code": response_code,
-            "response_message": response_message,
-        }
-    )
 
 
 @app.route("/last_scraped", methods=["GET"])
