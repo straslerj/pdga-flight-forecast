@@ -141,7 +141,9 @@ def create_tweet():
         )
 
     except Exception as e:
-        write_usage_log(db, USAGE_COLLECTION, "/create_tweet", "POST", 500, str(e))
+        write_usage_log(
+            db, USAGE_COLLECTION, "/create_tweet", "POST", 500, str(e), start_time
+        )
         return jsonify({"error": str(e)}), 500
 
 
