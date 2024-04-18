@@ -81,7 +81,27 @@ def authenticate():
     )
 
 
-def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+def write_usage_log(
+    db: pymongo.MongoClient,
+    collection: str,
+    endpoint: str,
+    method: str,
+    response_code: int,
+    response_message: str,
+    start_time: datetime.now,
+):
+    """Writes a log to MongoDB database
+
+    Args:
+        db (pymongo.MongoClient): the database to write the log to
+        collection (str): the colleciton within the database
+        endpoint (str): the endpoint called
+        method (str): the ReST method used to call the endpoint
+        response_code (int): the response code returned
+        response_message (str): the message returned
+        start_time (datetime): used to determine the response time of the endpoint
+    """
+    response_time = (datetime.now() - start_time).total_seconds() * 1000  # milliseconds
     db[collection].insert_one(
         {
             "endpoint": endpoint,
@@ -89,6 +109,7 @@ def write_usage_log(db, collection, endpoint, method, response_code, response_me
             "time": datetime.now(),
             "response_code": response_code,
             "response_message": response_message,
+            "response_time": response_time,
         }
     )
 
@@ -275,43 +296,53 @@ def clean_data(input_dict: dict) -> dict:
 
 
 @app.route("/predict", methods=["POST"])
+@verify_api_key
 def predict():
-    db = connect_to_mongodb()
-    data = fetch_data()
-    if len(data) == 0:
-        return jsonify({"message": "No new discs to predict for."})
-
-    fetch_model()
-    model = load_model()
-
-    data = make_predictions(model, data)  # type(make_prediction(x, y)) == DataFrame
-
-    # Applying prepare_for_table to the data
-    prepared_data = [clean_data(item) for item in data.to_dict(orient="records")]
-
-    upload_predictions_to_mongodb(prepared_data, PREDICTION_COLLECTION)
-
-    if os.path.exists(LOCAL_MODEL_NAME):
-        os.remove(LOCAL_MODEL_NAME)
-        print(f"File '{LOCAL_MODEL_NAME}' removed successfully.")
-
-    url = config["urls"]["twitter"]
-    headers = {"X-API-KEY": config["auth"]["api_key"]}
+    start_time = datetime.now()
     try:
-        response = requests.post(url, headers=headers)
-        print(f"Twitter service ran: {response}")
-        if response.status_code == 401:
-            print("Unauthorized: Invalid API key")
-        elif response.status_code != 200:
-            print(f"Error: {response.json()}")
-    except Exception as e:
-        print(
-            f"The Twitter service was triggered but there was an error in running it: {e}"
-        )
+        db = connect_to_mongodb()
+        data = fetch_data()
+        if len(data) == 0:
+            return jsonify({"message": "No new discs to predict for."})
 
-    message = f"{len(prepared_data)} predictions uploaded successfully to {PREDICTION_COLLECTION}"
-    write_usage_log(db, USAGE_COLLECTION, "/predict", "POST", 200, message)
-    return jsonify({"message": message})
+        fetch_model()
+        model = load_model()
+
+        data = make_predictions(model, data)  # type(make_prediction(x, y)) == DataFrame
+
+        # Applying prepare_for_table to the data
+        prepared_data = [clean_data(item) for item in data.to_dict(orient="records")]
+
+        upload_predictions_to_mongodb(prepared_data, PREDICTION_COLLECTION)
+
+        if os.path.exists(LOCAL_MODEL_NAME):
+            os.remove(LOCAL_MODEL_NAME)
+            print(f"File '{LOCAL_MODEL_NAME}' removed successfully.")
+
+        url = config["urls"]["twitter"]
+        headers = {"X-API-KEY": config["auth"]["api_key"]}
+        try:
+            response = requests.post(url, headers=headers)
+            print(f"Twitter service ran: {response}")
+            if response.status_code == 401:
+                print("Unauthorized: Invalid API key")
+            elif response.status_code != 200:
+                print(f"Error: {response.json()}")
+        except Exception as e:
+            print(
+                f"The Twitter service was triggered but there was an error in running it: {e}"
+            )
+
+        message = f"{len(prepared_data)} predictions uploaded successfully to {PREDICTION_COLLECTION}"
+        write_usage_log(
+            db, USAGE_COLLECTION, "/predict", "POST", 200, message, start_time
+        )
+        return jsonify({"message": message})
+    except Exception as e:
+        write_usage_log(
+            db, USAGE_COLLECTION, "/predict", "POST", 500, str(e), start_time
+        )
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/admin", methods=["GET"])
@@ -330,22 +361,29 @@ def admin():
                 "_id": "$endpoint",
                 "count": {"$sum": 1},
                 "last_run": {"$max": "$time"},
+                "average_time": {
+                    "$avg": "$response_time"
+                },  # Calculate average response time
             }
         },
     ]
 
     aggregation_result = list(collection.aggregate(pipeline))
 
-    endpoint_counts = {
-        item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
+    endpoint_data = {
+        item["_id"]: {
+            "count": item["count"],
+            "last_run": item["last_run"],
+            "average_time": (
+                round(item["average_time"], 2) if item["average_time"] else 0
+            ),  # Round to 2 decimal places
+        }
         for item in aggregation_result
     }
 
     all_entries = list(collection.find({}, {"_id": 0}).sort("time", -1))
 
-    return render_template(
-        "admin.html", endpoint_counts=endpoint_counts, log=all_entries
-    )
+    return render_template("admin.html", endpoint_data=endpoint_data, log=all_entries)
 
 
 if __name__ == "__main__":
