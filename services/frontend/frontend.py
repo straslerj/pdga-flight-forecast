@@ -49,7 +49,27 @@ def authenticate():
     )
 
 
-def write_usage_log(db, collection, endpoint, method, response_code, response_message):
+def write_usage_log(
+    db: pymongo.MongoClient,
+    collection: str,
+    endpoint: str,
+    method: str,
+    response_code: int,
+    response_message: str,
+    start_time: datetime.now,
+):
+    """Writes a log to MongoDB database
+
+    Args:
+        db (pymongo.MongoClient): the database to write the log to
+        collection (str): the colleciton within the database
+        endpoint (str): the endpoint called
+        method (str): the ReST method used to call the endpoint
+        response_code (int): the response code returned
+        response_message (str): the message returned
+        start_time (datetime): used to determine the response time of the endpoint
+    """
+    response_time = (datetime.now() - start_time).total_seconds() * 1000  # milliseconds
     db[collection].insert_one(
         {
             "endpoint": endpoint,
@@ -57,6 +77,7 @@ def write_usage_log(db, collection, endpoint, method, response_code, response_me
             "time": datetime.now(),
             "response_code": response_code,
             "response_message": response_message,
+            "response_time": response_time,
         }
     )
 
@@ -92,6 +113,7 @@ def format_date(date_time) -> str:
 
 @app.route("/")
 def index():
+    start_time = datetime.now()
     db = connect_to_mongodb()
     discs_cursor = db[PREDICTION_COLLECTION].find()
 
@@ -105,7 +127,7 @@ def index():
     ]
 
     message = f"Number of discs: {len(discs)}"
-    write_usage_log(db, USAGE_COLLECTION, "/", "GET", 200, message)
+    write_usage_log(db, USAGE_COLLECTION, "/", "GET", 200, message, start_time)
     return render_template("index.html", discs=discs)
 
 
@@ -125,22 +147,29 @@ def admin():
                 "_id": "$endpoint",
                 "count": {"$sum": 1},
                 "last_run": {"$max": "$time"},
+                "average_time": {
+                    "$avg": "$response_time"
+                },  # Calculate average response time
             }
         },
     ]
 
     aggregation_result = list(collection.aggregate(pipeline))
 
-    endpoint_counts = {
-        item["_id"]: {"count": item["count"], "last_run": item["last_run"]}
+    endpoint_data = {
+        item["_id"]: {
+            "count": item["count"],
+            "last_run": item["last_run"],
+            "average_time": (
+                round(item["average_time"], 2) if item["average_time"] else 0
+            ),  # Round to 2 decimal places
+        }
         for item in aggregation_result
     }
 
     all_entries = list(collection.find({}, {"_id": 0}).sort("time", -1))
 
-    return render_template(
-        "admin.html", endpoint_counts=endpoint_counts, log=all_entries
-    )
+    return render_template("admin.html", endpoint_data=endpoint_data, log=all_entries)
 
 
 if __name__ == "__main__":

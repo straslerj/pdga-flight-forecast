@@ -11,22 +11,24 @@
 <div class="container mt-5">
     <h2>Frontend Admin Dashboard</h2>
     
-    <!-- Endpoint counts table -->
-    <h3>Endpoint Counts</h3>
+    <!-- Endpoint data table -->
+    <h3>Endpoint Data</h3>
     <table class="table table-bordered">
         <thead>
             <tr>
                 <th>Endpoint</th>
                 <th>Count</th>
                 <th>Last Run</th>
+                <th>Average Time (ms)</th>
             </tr>
         </thead>
         <tbody>
-            {% for endpoint, data in endpoint_counts.items() %}
+            {% for endpoint, data in endpoint_data.items() %}
             <tr>
                 <td>{{ endpoint }}</td>
                 <td>{{ data.count }}</td>
                 <td>{{ data.last_run }}</td>
+                <td>{{ data.average_time }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -41,6 +43,7 @@
                 <th>Method</th>
                 <th>Response Code</th>
                 <th>Response Message</th>
+                <th>Response Time (ms)</th>
                 <th>Time</th>
             </tr>
         </thead>
@@ -51,6 +54,7 @@
                 <td>{{ entry.method }}</td>
                 <td>{{ entry.response_code }}</td>
                 <td>{{ entry.response_message }}</td>
+                <td>{{ entry.response_time }}</td>
                 <td>{{ entry.time }}</td>
             </tr>
             {% endfor %}
