@@ -32,3 +32,7 @@ This project scrapes the PDGA site daily to check for newly approved discs. Upon
 ## Architecture
 
 ![architecture-diagram](assets/architecture.png)
+
+This system deploys three Dockerized ReST services to Azure Container Apps. Another service, the front end, is deployed on PythonAnywhere and hosted using Cloudflare. These services read and/or write to mongoDB collections. The scraping service is kicked off daily by a CRON job with makes a call to the web scraper, which automatically kicks off the full system if new discs are added.
+
+Services are automatically updated with the most recent push to `main` using a Github workflow that builds each Docker container and pushes it to Docker Hub.
