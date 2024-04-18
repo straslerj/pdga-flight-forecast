@@ -8,11 +8,11 @@ Predicting the flight numbers of discs newly submitted to the PDGA for approval.
 
 In disc golf, different discs have different flights:
 
-![alt text](assets/stability.png)
+![stability-diagram](assets/stability.png)
 
 These flights (or flight paths) are determined by the physical measurements of the discs. These often get summarized by "flight numbers":
 
-<img src="assets/flight-numbers.png" alt="alt text" width="450" height="400">
+<img src="assets/flight-numbers.png" alt="flight-number-diagram" width="450" height="400">
 
 
 
@@ -24,3 +24,11 @@ Flight numbers are determined in by the manufacturer of the disc through two pri
 When a manufacturer makes a new disc they first must submit it to the PDGA for approval, as there are certain constraints a disc must fall within. The PDGA posts the newly approved discs [on their website](https://www.pdga.com/technical-standards/equipment-certification/discs). However, only the disc dimensions are posted, not its flight numbers, leaving many disc golfers anxiously speculating at what the newest discs might fly like.
 
 The goal of this project is to scrape the PDGA website and use a machine leaning model ([developed here](https://github.com/straslerj/disc-golf-flight-numbers)) to predict the flight of the newly submitted discs.
+
+## Overview
+
+This project scrapes the PDGA site daily to check for newly approved discs. Upon finding newly approved discs, the discs' measurements are scraped from the PDGA website for a machine learning model to use to predict the flight numbers for the newly approved discs. New predictions get posted to [X (Twitter)](https://twitter.com/flight_forecast) and to [pdga.jakestrasler.com](https://pdga.jakestrasler.com).
+
+## Architecture
+
+![architecture-diagram](assets/architecture.png)
