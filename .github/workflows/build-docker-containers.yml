@@ -30,8 +30,8 @@ jobs:
         echo "${{ secrets.CONFIG }}" > config.ini
         cd ../../tests/
         echo "${{ secrets.CONFIG }}" > config.ini
-        pwd
-        ls
+        cd ../
+        echo "${{ secrets.CONFIG }}" > config.ini
 
 
     - name: Install dependencies
