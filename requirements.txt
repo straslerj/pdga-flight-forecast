@@ -9,10 +9,6 @@ charset-normalizer==3.3.2
 click==8.1.7
 dnspython==2.6.1
 Flask==3.0.2
-Flask-Admin==1.6.1
-Flask-BasicAuth==0.2.0
-Flask-SuperAdmin==1.7.1
-Flask-WTF==1.2.1
 idna==3.6
 iniconfig==2.0.0
 itsdangerous==2.1.2
@@ -21,7 +17,7 @@ jmespath==1.0.1
 joblib==1.4.0
 MarkupSafe==2.1.5
 numpy==1.26.4
-oauthlib==1.0.0
+oauthlib==3.2.2
 packaging==24.0
 pandas==2.2.1
 pluggy==1.5.0
