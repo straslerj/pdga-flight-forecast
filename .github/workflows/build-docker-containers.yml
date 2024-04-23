@@ -28,7 +28,6 @@ jobs:
         echo "${{ secrets.CONFIG }}" > config.ini
         cd ../twitter
         echo "${{ secrets.CONFIG }}" > config.ini
-        cd ..
         cd ../../tests/
         echo "${{ secrets.CONFIG }}" > config.ini
 
