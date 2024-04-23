@@ -1,4 +1,4 @@
-name: Docker Build
+name: Test and Build
 
 on:
   push:
@@ -6,9 +6,10 @@ on:
       - main
 
 jobs:
-  build:
+  test:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -19,6 +20,34 @@ jobs:
         cp requirements.txt services/scraper
         cp requirements.txt services/twitter
 
+    - name: Install dependencies
+      run: |
+        cd services/prediction
+        pip install -r requirements.txt
+        cd ../scraper
+        pip install -r requirements.txt
+        cd ../twitter
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        pytest tests/
+
+  build:
+    name: Build and Push Docker Images
+    needs: test
+    runs-on: ubuntu-latest
+    if: needs.test.result == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Copy requirements
+      run: |
+        cp requirements.txt services/prediction
+        cp requirements.txt services/scraper
+        cp requirements.txt services/twitter
 
     - name: Create config
       run: |
@@ -28,13 +57,13 @@ jobs:
         echo "${{ secrets.CONFIG }}" > config.ini
         cd ../twitter
         echo "${{ secrets.CONFIG }}" > config.ini
-      
+
     - name: Login to Docker Hub
       uses: docker/login-action@v1
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-      
+
     - name: Build and push Docker images
       run: |
         cd services/prediction
