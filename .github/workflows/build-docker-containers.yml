@@ -29,8 +29,10 @@ jobs:
         cd ../twitter
         echo "${{ secrets.CONFIG }}" > config.ini
         cd ../../tests/
-        ls
         echo "${{ secrets.CONFIG }}" > config.ini
+        pwd
+        ls
+
 
     - name: Install dependencies
       run: |
